@@ -1,0 +1,206 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_STUDENTS 100
+#define TOTAL_DAYS 30   // Assume 30 working days in a month
+
+typedef struct {
+    int rollNo;
+    char name[50];
+    int presentCount[TOTAL_DAYS]; // 1 = present, 0 = absent
+    int totalPresent;
+} Student;
+
+Student students[MAX_STUDENTS];
+int studentCount = 0;
+
+// Function prototypes
+void addStudent();
+void markAttendance();
+void showAttendancePercentage();
+void showLowAttendance();
+void searchStudent();
+void showAllStudents();
+int findStudentIndex(int rollNo);
+
+int main() {
+    int choice;
+    
+    while(1) {
+        printf("\n===== STUDENT ATTENDANCE TRACKER =====\n");
+        printf("1. Add Student\n");
+        printf("2. Mark Attendance\n");
+        printf("3. Show Attendance Percentage (All)\n");
+        printf("4. Show Students with <75%% Attendance\n");
+        printf("5. Search Student by Roll No\n");
+        printf("6. Show All Students\n");
+        printf("7. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        
+        switch(choice) {
+            case 1: addStudent(); break;
+            case 2: markAttendance(); break;
+            case 3: showAttendancePercentage(); break;
+            case 4: showLowAttendance(); break;
+            case 5: searchStudent(); break;
+            case 6: showAllStudents(); break;
+            case 7: printf("Exiting... Thank you!\n"); exit(0);
+            default: printf("Invalid choice! Try again.\n");
+        }
+    }
+    return 0;
+}
+
+void addStudent() {
+    if(studentCount >= MAX_STUDENTS) {
+        printf("Student limit reached!\n");
+        return;
+    }
+    
+    Student s;
+    printf("Enter Roll No: ");
+    scanf("%d", &s.rollNo);
+    
+    // Check duplicate roll no
+    if(findStudentIndex(s.rollNo) != -1) {
+        printf("Roll No already exists!\n");
+        return;
+    }
+    
+    printf("Enter Name: ");
+    scanf(" %[^\n]", s.name);
+    
+    s.totalPresent = 0;
+    for(int i = 0; i < TOTAL_DAYS; i++) {
+        s.presentCount[i] = 0; // initially all absent
+    }
+    
+    students[studentCount++] = s;
+    printf("Student added successfully!\n");
+}
+
+int findStudentIndex(int rollNo) {
+    for(int i = 0; i < studentCount; i++) {
+        if(students[i].rollNo == rollNo)
+            return i;
+    }
+    return -1;
+}
+
+void markAttendance() {
+    int rollNo, day;
+    printf("Enter Roll No: ");
+    scanf("%d", &rollNo);
+    
+    int index = findStudentIndex(rollNo);
+    if(index == -1) {
+        printf("Student not found!\n");
+        return;
+    }
+    
+    printf("Enter day number (1 to %d): ", TOTAL_DAYS);
+    scanf("%d", &day);
+    
+    if(day < 1 || day > TOTAL_DAYS) {
+        printf("Invalid day!\n");
+        return;
+    }
+    
+    int status;
+    printf("Mark (1 for Present / 0 for Absent): ");
+    scanf("%d", &status);
+    
+    if(status != 0 && status != 1) {
+        printf("Invalid status!\n");
+        return;
+    }
+    
+    // Update only if not already marked
+    if(students[index].presentCount[day-1] == status) {
+        printf("Attendance already set to %s for day %d\n", 
+               status ? "Present" : "Absent", day);
+        return;
+    }
+    
+    // Adjust totalPresent count
+    if(students[index].presentCount[day-1] == 1 && status == 0)
+        students[index].totalPresent--;
+    else if(students[index].presentCount[day-1] == 0 && status == 1)
+        students[index].totalPresent++;
+    
+    students[index].presentCount[day-1] = status;
+    printf("Attendance updated for Day %d: %s\n", 
+           day, status ? "Present" : "Absent");
+}
+
+void showAttendancePercentage() {
+    if(studentCount == 0) {
+        printf("No students found!\n");
+        return;
+    }
+    
+    printf("\n--- Attendance Report ---\n");
+    printf("Roll No\tName\t\tPresent Days\tPercentage\n");
+    printf("--------------------------------------------\n");
+    
+    for(int i = 0; i < studentCount; i++) {
+        float percent = (students[i].totalPresent * 100.0) / TOTAL_DAYS;
+        printf("%d\t%-15s\t%d\t\t%.2f%%\n", 
+               students[i].rollNo, students[i].name, 
+               students[i].totalPresent, percent);
+    }
+}
+
+void showLowAttendance() {
+    int found = 0;
+    printf("\n--- Students with <75%% Attendance ---\n");
+    printf("Roll No\tName\t\tPresent Days\tPercentage\n");
+    printf("--------------------------------------------\n");
+    
+    for(int i = 0; i < studentCount; i++) {
+        float percent = (students[i].totalPresent * 100.0) / TOTAL_DAYS;
+        if(percent < 75.0) {
+            printf("%d\t%-15s\t%d\t\t%.2f%%\n", 
+                   students[i].rollNo, students[i].name, 
+                   students[i].totalPresent, percent);
+            found++;
+        }
+    }
+    
+    if(!found)
+        printf("No student has attendance below 75%%.\n");
+}
+
+void searchStudent() {
+    int rollNo;
+    printf("Enter Roll No to search: ");
+    scanf("%d", &rollNo);
+    
+    int index = findStudentIndex(rollNo);
+    if(index == -1) {
+        printf("Student not found!\n");
+        return;
+    }
+    
+    printf("\n--- Student Details ---\n");
+    printf("Roll No: %d\n", students[index].rollNo);
+    printf("Name: %s\n", students[index].name);
+    float percent = (students[index].totalPresent * 100.0) / TOTAL_DAYS;
+    printf("Attendance: %d / %d days (%.2f%%)\n", 
+           students[index].totalPresent, TOTAL_DAYS, percent);
+}
+
+void showAllStudents() {
+    if(studentCount == 0) {
+        printf("No students added yet.\n");
+        return;
+    }
+    
+    printf("\n--- All Students ---\n");
+    for(int i = 0; i < studentCount; i++) {
+        printf("Roll: %d | Name: %s\n", students[i].rollNo, students[i].name);
+    }
+}
+
